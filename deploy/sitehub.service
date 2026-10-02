@@ -2,6 +2,8 @@
 Description=SiteHub — dashboard of sites with admin panel
 After=network-online.target
 Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=20
 
 [Service]
 Type=simple
@@ -12,19 +14,13 @@ Environment=SITEHUB_DATA=/var/lib/sitehub
 Environment=PYTHONUNBUFFERED=1
 ExecStart=/opt/sitehub/venv/bin/python -m sitehub.run
 Restart=always
-RestartSec=1
+RestartSec=2
 # allow binding to ports < 1024 (80/443) without root
 AmbientCapabilities=CAP_NET_BIND_SERVICE
 CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 NoNewPrivileges=true
-ProtectSystem=strict
-ProtectHome=true
-PrivateTmp=true
-ReadWritePaths=/var/lib/sitehub
-ProtectKernelTunables=true
-ProtectControlGroups=true
-RestrictSUIDSGID=true
-LockPersonality=true
+# Filesystem sandboxing (ProtectSystem etc.) is added by install.sh as a drop-in
+# only where mount namespaces work - unprivileged LXC containers don't allow them.
 
 [Install]
 WantedBy=multi-user.target

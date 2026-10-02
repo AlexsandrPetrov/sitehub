@@ -45,6 +45,14 @@ chmod 750 "$DATA"
 
 install -m 0644 "$APP/deploy/sitehub.service" /etc/systemd/system/sitehub.service
 install -m 0755 "$APP/deploy/sitehub-cli" /usr/local/bin/sitehub
+mkdir -p /etc/systemd/system/sitehub.service.d
+if systemd-run --quiet --wait --collect -p ProtectSystem=strict -p PrivateTmp=true /bin/true >/dev/null 2>&1; then
+  install -m 0644 "$APP/deploy/hardening.conf" /etc/systemd/system/sitehub.service.d/hardening.conf
+  echo "==> Песочница systemd включена"
+else
+  rm -f /etc/systemd/system/sitehub.service.d/hardening.conf
+  echo "==> Песочница systemd недоступна (непривилегированный контейнер) — пропускаю"
+fi
 
 FIRST=0
 if [ ! -f "$DATA/sitehub.db" ]; then
