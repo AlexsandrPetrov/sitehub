@@ -1,0 +1,12 @@
+<li class="site-row" draggable="true" data-site-id="{{ s.id }}">
+  <span class="handle">{{ icon("grip", 16) }}</span>
+  {{ site_avatar(s, "sm") }}
+  <a class="grow" href="/admin/sites/edit?id={{ s.id }}">
+    <span class="row-title">{{ s.title }}{% if s.private %} <span class="lock">{{ icon("lock", 12) }}</span>{% endif %}</span>
+    <small>{{ s.url }}</small>
+  </a>
+  <span class="hide-sm">{{ status_badge(s, _) }}</span>
+  {% if uptime.get(s.id) is not none %}<span class="badge muted hide-sm" title="{{ _('аптайм 24ч') }}">{{ uptime[s.id] }}%</span>{% endif %}
+  <a class="icon-btn" href="{{ s.url }}" target="_blank" rel="noopener noreferrer" title="{{ _('Открыть') }}">{{ icon("external", 16) }}</a>
+  <a class="icon-btn" href="/admin/sites/edit?id={{ s.id }}" title="{{ _('Редактировать') }}">{{ icon("edit", 16) }}</a>
+</li>

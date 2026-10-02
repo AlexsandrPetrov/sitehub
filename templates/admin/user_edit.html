@@ -1,0 +1,63 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, switch with context %}
+{% block page_title %}{{ u.username }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div><a class="btn-link" href="/admin/users">{{ icon("arrow-left", 14) }} {{ _("Пользователи") }}</a>
+    <h1>{{ u.username }}</h1>
+    <p class="muted">{{ _("создан") }} {{ u.created_at|dt }} · {{ _("последний вход") }} {{ u.last_login|dt }}{% if u.last_ip %} ({{ u.last_ip }}){% endif %}</p></div>
+</div>
+
+{% if new_password %}
+<div class="alert warn block">
+  <div>{{ _("Новый пароль для") }} <b>{{ new_password[0] }}</b>:</div>
+  <div class="secret"><code id="newpw">{{ new_password[1] }}</code>
+    <button type="button" class="icon-btn" data-copy="#newpw">{{ icon("copy", 16) }}</button></div>
+</div>
+{% endif %}
+
+<div class="cols-main">
+  <form method="post" action="/admin/users/{{ u.id }}/save" class="card form" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ icon("user") }} {{ _("Учётная запись") }}</h2>
+    <div class="grid-2">
+      <label class="field"><span>{{ _("Имя") }}</span><input name="display_name" value="{{ u.display_name or '' }}" maxlength="64"></label>
+      <label class="field"><span>{{ _("Роль") }}</span>
+        <select name="role">{% for r in roles %}<option value="{{ r }}" {% if r == u.role %}selected{% endif %}>{{ _(r) }}</option>{% endfor %}</select></label>
+    </div>
+    {{ switch("active", u.active, _("Учётная запись активна"), _("Заблокированный пользователь не может войти")) }}
+    <fieldset class="fieldset">
+      <legend>{{ _("Сброс пароля") }}</legend>
+      <label class="field"><span>{{ _("Новый пароль") }}</span>
+        <input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="{{ _('оставьте пустым, чтобы не менять') }}"></label>
+      <label class="check"><input type="checkbox" name="generate" value="1"> {{ _("Сгенерировать случайный пароль") }}</label>
+    </fieldset>
+    <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Сохранить") }}</button></div>
+  </form>
+
+  <aside class="side-stack">
+    <section class="card">
+      <h2>{{ icon("shield") }} 2FA</h2>
+      {% if u.totp_enabled %}
+      <p><span class="badge ok">{{ _("включена") }}</span></p>
+      <form method="post" action="/admin/users/{{ u.id }}/reset-2fa" data-confirm="{{ _('Сбросить 2FA? Пользователь сможет войти только по паролю и настроить 2FA заново.') }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn-ghost btn-block" type="submit">{{ icon("refresh", 16) }} {{ _("Сбросить 2FA") }}</button></form>
+      {% else %}<p class="muted">{{ _("Не настроена. Пользователь может включить её в своём профиле.") }}</p>{% endif %}
+    </section>
+    {% if u.id != user.id %}
+    <section class="card">
+      <h2>{{ icon("trash") }} {{ _("Удаление") }}</h2>
+      <form method="post" action="/admin/users/{{ u.id }}/delete" data-confirm="{{ _('Удалить пользователя {n}?', n=u.username) }}">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn-danger btn-block" type="submit">{{ icon("trash", 16) }} {{ _("Удалить пользователя") }}</button></form>
+    </section>
+    {% endif %}
+  </aside>
+</div>
+
+<section class="card">
+  <h2>{{ icon("clock") }} {{ _("Попытки входа") }}</h2>
+  {% include "admin/_attempts_table.html" with context %}
+</section>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, switch with context %}
+{% block page_title %}{{ _("Сервер и SSL") }}{% endblock %}
+
+{% macro cert_card(info) -%}
+{% if info %}
+<div class="cert {% if info.days_left < 0 %}bad{% elif info.days_left < 20 %}warn{% else %}ok{% endif %}">
+  <div><b>{{ info.subject }}</b>{% if info.names %} <small>{{ info.names|join(", ") }}</small>{% endif %}</div>
+  <div class="small muted">{{ _("Издатель") }}: {{ info.issuer }}{% if info.self_signed %} ({{ _("самоподписанный") }}){% endif %}</div>
+  <div class="small">{{ _("Действует до") }} {{ info.not_after }} ·
+    {% if info.days_left < 0 %}<b>{{ _("истёк") }}</b>{% else %}{{ _("осталось дней:") }} <b>{{ info.days_left }}</b>{% endif %}</div>
+</div>
+{% else %}<p class="muted small">{{ _("Сертификат ещё не создан") }}</p>{% endif %}
+{%- endmacro %}
+
+{% block admin %}
+<div class="page-head">
+  <div><h1>{{ _("Сервер и SSL") }}</h1><p class="muted">{{ _("Порт, адрес прослушивания и HTTPS") }}</p></div>
+  <form method="post" action="/admin/server/restart" data-confirm="{{ _('Перезапустить сервис?') }}">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn btn-ghost" type="submit">{{ icon("power", 16) }} {{ _("Перезапустить") }}</button></form>
+</div>
+
+<form method="post" action="/admin/server/save" class="card form" data-confirm="{{ _('Применить настройки? Сервис перезапустится и может стать доступен по новому адресу.') }}">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ icon("server") }} {{ _("Подключение") }}</h2>
+  <div class="grid-3">
+    <label class="field"><span>{{ _("Порт") }}</span>
+      <input type="number" name="port" min="1" max="65535" value="{{ cfg.port }}" required>
+      <span class="hint">{{ _("Например 443 для HTTPS, 80 для HTTP или любой свой") }}</span></label>
+    <label class="field"><span>{{ _("Адрес прослушивания") }}</span>
+      <input name="host" value="{{ cfg.host }}" spellcheck="false">
+      <span class="hint">{{ _("0.0.0.0 — все интерфейсы, :: — включая IPv6") }}</span></label>
+    <label class="field"><span>{{ _("Доменное имя") }}</span>
+      <input name="domain" value="{{ cfg.domain }}" placeholder="hub.example.ru" spellcheck="false"></label>
+  </div>
+
+  <div class="field"><span>{{ _("Режим HTTPS") }}</span>
+    <div class="mode-cards">
+      {% set modes = [
+        ("off", "globe", "Без SSL", "Обычный HTTP"),
+        ("letsencrypt", "zap", "Let's Encrypt", "Бесплатный, продлевается автоматически"),
+        ("custom", "upload", "Свой сертификат", "Загруженный вами сертификат"),
+        ("selfsigned", "lock", "Самоподписанный", "Для локальной сети, браузер предупредит"),
+      ] %}
+      {% for val, ic, title, desc in modes %}
+      {% set ready = val == "off" or certs[val] %}
+      <label class="mode {% if not ready %}disabled{% endif %}">
+        <input type="radio" name="ssl_mode" value="{{ val }}" {% if cfg.ssl_mode == val %}checked{% endif %} {% if not ready %}disabled{% endif %}>
+        <span class="mode-box">{{ icon(ic, 20) }}<b>{{ _(title) }}</b><small>{{ _(desc) }}</small>
+          {% if not ready %}<em>{{ _("нужен сертификат") }}</em>{% endif %}</span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
+  {{ switch("http_redirect", cfg.http_redirect == "1", _("Перенаправлять HTTP (порт 80) на HTTPS"), _("Также обслуживает проверки Let's Encrypt при продлении")) }}
+  <input type="hidden" name="le_email" value="{{ cfg.le_email }}">
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Применить и перезапустить") }}</button>
+    <span class="hint">{{ _("Если что-то пойдёт не так, восстановить доступ можно из консоли: sitehub set-port 8080 / sitehub ssl-off") }}</span>
+  </div>
+</form>
+
+<h2 class="section-title" id="ssl">{{ icon("lock") }} {{ _("Сертификаты") }}</h2>
+<div class="cols-3">
+  <section class="card">
+    <h3>{{ icon("zap", 16) }} Let's Encrypt</h3>
+    {{ cert_card(certs.letsencrypt) }}
+    <form method="post" action="/admin/server/letsencrypt" class="form" data-busy="{{ _('Получаем сертификат… это может занять до минуты') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="field"><span>{{ _("Домен") }}</span><input name="domain" value="{{ cfg.domain }}" required placeholder="hub.example.ru" spellcheck="false"></label>
+      <label class="field"><span>E-mail</span><input type="email" name="le_email" value="{{ cfg.le_email }}" placeholder="{{ _('для уведомлений об истечении') }}"></label>
+      <label class="check"><input type="checkbox" name="staging" value="1"> {{ _("Тестовый сервер (staging)") }}</label>
+      <button class="btn btn-primary btn-block" type="submit">{{ icon("download", 16) }} {{ _("Получить сертификат") }}</button>
+      <p class="hint">{{ _("Домен должен указывать на этот сервер, порт 80 — быть доступен из интернета. Продление — автоматически.") }}</p>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>{{ icon("upload", 16) }} {{ _("Свой сертификат") }}</h3>
+    {{ cert_card(certs.custom) }}
+    <form method="post" action="/admin/server/cert" enctype="multipart/form-data" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="field"><span>{{ _("Сертификат с цепочкой (fullchain.pem / .crt)") }}</span><input type="file" name="cert_file" accept=".pem,.crt,.cer"></label>
+      <label class="field"><span>{{ _("Закрытый ключ (privkey.pem / .key)") }}</span><input type="file" name="key_file" accept=".pem,.key"></label>
+      <details class="paste"><summary>{{ _("или вставить текстом") }}</summary>
+        <textarea name="cert_text" rows="4" placeholder="-----BEGIN CERTIFICATE-----" spellcheck="false"></textarea>
+        <textarea name="key_text" rows="4" placeholder="-----BEGIN PRIVATE KEY-----" spellcheck="false"></textarea>
+      </details>
+      <button class="btn btn-primary btn-block" type="submit">{{ icon("upload", 16) }} {{ _("Загрузить") }}</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>{{ icon("lock", 16) }} {{ _("Самоподписанный") }}</h3>
+    {{ cert_card(certs.selfsigned) }}
+    <form method="post" action="/admin/server/selfsigned" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="field"><span>{{ _("Имя хоста или IP") }}</span><input name="name" value="{{ cfg.domain or current_host }}" spellcheck="false"></label>
+      <button class="btn btn-ghost btn-block" type="submit">{{ icon("refresh", 16) }} {{ _("Сгенерировать") }}</button>
+      <p class="hint">{{ _("Подходит для локальной сети: трафик шифруется, но браузер покажет предупреждение.") }}</p>
+    </form>
+  </section>
+</div>
+
+{% if le_output %}
+<section class="card">
+  <h2>{{ icon("file") }} {{ _("Вывод certbot") }}</h2>
+  <pre class="log">{{ le_output }}</pre>
+</section>
+{% endif %}
+{% endblock %}

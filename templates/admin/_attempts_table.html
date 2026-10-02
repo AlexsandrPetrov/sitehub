@@ -1,0 +1,21 @@
+{% set rows = logins if logins is defined else attempts %}
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>{{ _("Время") }}</th><th>{{ _("Логин") }}</th><th>IP</th><th>{{ _("Этап") }}</th><th>{{ _("Результат") }}</th></tr></thead>
+  <tbody>
+  {% for a in rows %}
+  <tr>
+    <td class="nowrap muted">{{ a.ts|dt }}</td>
+    <td>{{ a.username or "—" }}</td>
+    <td class="mono small">{{ a.ip }}</td>
+    <td class="small">{{ _("stage:" ~ a.stage) }}</td>
+    <td>{% if a.success == 1 %}<span class="badge ok">{{ _("успешно") }}</span>
+        {% elif a.success == -1 %}<span class="badge muted">{{ _("ошибка (сброшено)") }}</span>
+        {% else %}<span class="badge bad">{{ _("ошибка") }}</span>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted center">{{ _("Попыток входа пока не было") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

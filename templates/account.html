@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon with context %}
+{% block title %}{{ _("Мой профиль") }} — {{ cfg.site_title }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>{{ _("Мой профиль") }}</h1>
+    <p class="muted">{{ user.username }} · {{ _(user.role) }}{% if user.last_login %} · {{ _("последний вход") }} {{ user.last_login|dt }}{% endif %}</p>
+  </div>
+  <a class="btn btn-ghost" href="/">{{ icon("arrow-left", 16) }} {{ _("На главную") }}</a>
+</div>
+
+<div class="cols-2">
+  <section class="card">
+    <h2>{{ icon("user") }} {{ _("Профиль") }}</h2>
+    <form method="post" action="/account/profile" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <label class="field"><span>{{ _("Отображаемое имя") }}</span>
+        <input name="display_name" value="{{ user.display_name or '' }}" maxlength="64" placeholder="{{ user.username }}"></label>
+      <label class="field"><span>{{ _("Язык интерфейса") }}</span>
+        <select name="lang">
+          {% for code, name in langs.items() %}<option value="{{ code }}" {% if code == lang %}selected{% endif %}>{{ name }}</option>{% endfor %}
+        </select></label>
+      <button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Сохранить") }}</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>{{ icon("key") }} {{ _("Смена пароля") }}</h2>
+    <form method="post" action="/account/password" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="text" name="username" value="{{ user.username }}" autocomplete="username" hidden>
+      <label class="field"><span>{{ _("Текущий пароль") }}</span>
+        <input type="password" name="current" required autocomplete="current-password"></label>
+      <label class="field"><span>{{ _("Новый пароль") }}</span>
+        <input type="password" name="new" required minlength="8" autocomplete="new-password" data-strength></label>
+      <div class="strength" aria-hidden="true"><span></span></div>
+      <label class="field"><span>{{ _("Повторите новый пароль") }}</span>
+        <input type="password" name="confirm" required minlength="8" autocomplete="new-password"></label>
+      <button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Изменить пароль") }}</button>
+    </form>
+  </section>
+</div>
+
+<section class="card" id="twofa">
+  <div class="card-head">
+    <h2>{{ icon("shield") }} {{ _("Двухфакторная аутентификация") }}</h2>
+    {% if user.totp_enabled %}<span class="badge ok"><span class="dot"></span>{{ _("включена") }}</span>
+    {% else %}<span class="badge warn">{{ _("выключена") }}</span>{% endif %}
+  </div>
+
+  {% if recovery_codes %}
+  <div class="alert warn block">
+    <div><b>{{ _("Сохраните резервные коды") }}</b> — {{ _("они показываются только один раз. Каждый код можно использовать для входа один раз, если телефон недоступен.") }}</div>
+    <div class="codes" id="codes">{% for c in recovery_codes %}<code>{{ c }}</code>{% endfor %}</div>
+    <button type="button" class="btn btn-ghost btn-sm" data-copy="#codes">{{ icon("copy", 14) }} {{ _("Скопировать") }}</button>
+  </div>
+  {% endif %}
+
+  {% if user.totp_enabled %}
+  <p>{{ _("При входе, помимо пароля, запрашивается одноразовый код из приложения (Google Authenticator, Яндекс Ключ, Aegis, 2FAS и др.).") }}</p>
+  <p class="muted">{{ _("Осталось резервных кодов:") }} <b>{{ recovery_left }}</b></p>
+  <div class="cols-2">
+    <form method="post" action="/account/2fa/recovery" class="form inline-form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="password" name="password" placeholder="{{ _('Текущий пароль') }}" required autocomplete="current-password">
+      <button class="btn btn-ghost" type="submit">{{ icon("refresh", 16) }} {{ _("Новые резервные коды") }}</button>
+    </form>
+    {% if not (cfg.require_2fa_admins == "1" and user.role == "admin") %}
+    <form method="post" action="/account/2fa/disable" class="form inline-form" data-confirm="{{ _('Отключить двухфакторную аутентификацию?') }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="password" name="password" placeholder="{{ _('Текущий пароль') }}" required autocomplete="current-password">
+      <button class="btn btn-danger" type="submit">{{ icon("x", 16) }} {{ _("Отключить 2FA") }}</button>
+    </form>
+    {% endif %}
+  </div>
+  {% elif totp_pending %}
+  <div class="twofa-setup">
+    <div class="qr">{{ qr|safe }}</div>
+    <div>
+      <ol class="steps">
+        <li>{{ _("Установите приложение-аутентификатор: Google Authenticator, Яндекс Ключ, Aegis, 2FAS или аналог.") }}</li>
+        <li>{{ _("Отсканируйте QR-код. Если камера недоступна — введите ключ вручную:") }}
+          <div class="secret"><code id="secret">{{ totp_pending }}</code>
+            <button type="button" class="icon-btn" data-copy="#secret" title="{{ _('Скопировать') }}">{{ icon("copy", 16) }}</button></div></li>
+        <li>{{ _("Введите 6-значный код из приложения для подтверждения:") }}</li>
+      </ol>
+      <form method="post" action="/account/2fa/enable" class="form inline-form">
+        <input type="hidden" name="csrf" value="{{ csrf }}">
+        <input class="otp sm" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="7" placeholder="000000" required autofocus>
+        <button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Включить") }}</button>
+      </form>
+      <form method="post" action="/account/2fa/cancel"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn-link" type="submit">{{ _("Отмена") }}</button></form>
+    </div>
+  </div>
+  {% else %}
+  <p>{{ _("Защитите учётную запись: даже если пароль утечёт, без кода с вашего телефона войти не получится.") }}</p>
+  <form method="post" action="/account/2fa/start">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn btn-primary" type="submit">{{ icon("shield", 16) }} {{ _("Включить 2FA") }}</button>
+  </form>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>{{ icon("logout") }} {{ _("Сеансы") }}</h2>
+  <p class="muted">{{ _("Завершить все сеансы на других устройствах — например, если вы забыли выйти на чужом компьютере.") }}</p>
+  <form method="post" action="/account/logout-all"><input type="hidden" name="csrf" value="{{ csrf }}">
+    <button class="btn btn-ghost" type="submit">{{ icon("power", 16) }} {{ _("Завершить другие сеансы") }}</button></form>
+</section>
+{% endblock %}

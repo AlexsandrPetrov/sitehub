@@ -1,0 +1,9 @@
+{
+  "name": "SiteHub",
+  "short_name": "SiteHub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0c13",
+  "theme_color": "#6a4cff",
+  "icons": [{ "src": "/static/favicon.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

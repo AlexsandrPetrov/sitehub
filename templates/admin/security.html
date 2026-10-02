@@ -1,0 +1,65 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, switch with context %}
+{% block page_title %}{{ _("Безопасность") }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div><h1>{{ _("Безопасность") }}</h1><p class="muted">{{ _("Защита от перебора паролей, блокировки и журнал событий") }}</p></div>
+</div>
+
+<div class="cols-main">
+  <form method="post" action="/admin/security/save" class="card form">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <h2>{{ icon("shield") }} {{ _("Защита от перебора") }}</h2>
+    <div class="grid-3">
+      <label class="field"><span>{{ _("Неудачных попыток до блокировки") }}</span>
+        <input type="number" name="max_attempts" min="1" max="100" value="{{ cfg.max_attempts }}"></label>
+      <label class="field"><span>{{ _("Окно подсчёта, мин") }}</span>
+        <input type="number" name="attempt_window" min="1" max="1440" value="{{ cfg.attempt_window }}"></label>
+      <label class="field"><span>{{ _("Блокировка IP, мин") }}</span>
+        <input type="number" name="lockout_minutes" min="1" max="10080" value="{{ cfg.lockout_minutes }}"></label>
+    </div>
+    <div class="grid-3">
+      <label class="field"><span>{{ _("Блокировка учётки: множитель") }}</span>
+        <input type="number" name="user_lock_factor" min="1" max="100" value="{{ cfg.user_lock_factor }}">
+        <span class="hint">{{ _("Учётная запись временно блокируется после N × множитель ошибок с любых IP (защита от распределённого перебора)") }}</span></label>
+      <label class="field"><span>{{ _("Длительность сеанса, ч") }}</span>
+        <input type="number" name="session_hours" min="1" max="720" value="{{ cfg.session_hours }}"></label>
+      <span></span>
+    </div>
+    <label class="field"><span>{{ _("Белый список IP / подсетей") }}</span>
+      <input name="ip_whitelist" value="{{ cfg.ip_whitelist }}" placeholder="192.168.2.0/24 10.0.0.5" spellcheck="false">
+      <span class="hint">{{ _("Эти адреса никогда не блокируются. Ваш текущий IP:") }} <code>{{ my_ip }}</code></span></label>
+    {{ switch("require_2fa_admins", cfg.require_2fa_admins == "1", _("Обязательная 2FA для администраторов"), _("Администратор без 2FA будет перенаправлен на её настройку")) }}
+    {{ switch("trust_proxy", cfg.trust_proxy == "1", _("Работаю за обратным прокси"), _("Брать IP клиента из X-Forwarded-For. Включайте только если перед сервисом стоит nginx/Caddy, иначе заголовок можно подделать")) }}
+    <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Сохранить") }}</button></div>
+  </form>
+
+  <aside class="side-stack">
+    <section class="card">
+      <div class="card-head"><h2>{{ icon("lock") }} {{ _("Заблокированные IP") }}</h2>
+        {% if bans %}<form method="post" action="/admin/security/unban"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <input type="hidden" name="all" value="1"><button class="btn-link" type="submit">{{ _("снять все") }}</button></form>{% endif %}</div>
+      {% if bans %}
+      <ul class="rows">
+        {% for b in bans %}
+        <li><span class="grow"><span class="mono">{{ b.ip }}</span><small>{{ _("до") }} {{ b.until|dt }} · {{ b.reason }}</small></span>
+          <form method="post" action="/admin/security/unban"><input type="hidden" name="csrf" value="{{ csrf }}">
+            <input type="hidden" name="ip" value="{{ b.ip }}"><button class="icon-btn" type="submit" title="{{ _('Разблокировать') }}">{{ icon("x", 16) }}</button></form></li>
+        {% endfor %}
+      </ul>
+      {% else %}<p class="empty-mini">{{ icon("check", 22) }} {{ _("Блокировок нет") }}</p>{% endif %}
+    </section>
+  </aside>
+</div>
+
+<section class="card">
+  <h2>{{ icon("key") }} {{ _("Попытки входа") }}</h2>
+  {% include "admin/_attempts_table.html" with context %}
+</section>
+
+<section class="card" id="audit">
+  <h2>{{ icon("clock") }} {{ _("Журнал событий") }}</h2>
+  {% set events = audit %}
+  {% include "admin/_audit_table.html" with context %}
+</section>
+{% endblock %}

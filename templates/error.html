@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon with context %}
+{% block title %}{{ code }} — {{ cfg.site_title }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<div class="auth-card card center">
+  <div class="err-code">{{ code }}</div>
+  <h1>{{ _(title) }}</h1>
+  <p><a class="btn btn-ghost" href="/">{{ icon("home", 18) }} {{ _("На главную") }}</a></p>
+</div>
+{% endblock %}

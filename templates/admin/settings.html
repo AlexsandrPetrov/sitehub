@@ -1,0 +1,47 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, switch with context %}
+{% block page_title %}{{ _("Настройки") }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div><h1>{{ _("Настройки") }}</h1><p class="muted">{{ _("Внешний вид главной страницы, мониторинг, импорт и экспорт") }}</p></div>
+</div>
+
+<form method="post" action="/admin/settings/save" class="card form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  <h2>{{ icon("home") }} {{ _("Главная страница") }}</h2>
+  <div class="grid-2">
+    <label class="field"><span>{{ _("Название") }}</span><input name="site_title" value="{{ cfg.site_title }}" maxlength="60" required></label>
+    <label class="field"><span>{{ _("Язык по умолчанию") }}</span>
+      <select name="default_lang">{% for code, name in langs.items() %}<option value="{{ code }}" {% if code == cfg.default_lang %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
+  </div>
+  <label class="field"><span>{{ _("Подзаголовок") }}</span><input name="site_subtitle" value="{{ cfg.site_subtitle }}" maxlength="160" placeholder="{{ _('Например: Сервисы нашей компании') }}"></label>
+  {{ switch("public_dashboard", cfg.public_dashboard == "1", _("Публичная главная"), _("Гости видят открытые сайты без входа. Если выключено — главная доступна только после входа")) }}
+  {{ switch("show_clock", cfg.show_clock == "1", _("Часы и приветствие")) }}
+  {{ switch("show_status", cfg.show_status == "1", _("Показывать статус доступности на плитках")) }}
+
+  <h2>{{ icon("activity") }} {{ _("Мониторинг") }}</h2>
+  <div class="grid-3">
+    <label class="field"><span>{{ _("Интервал проверки, сек") }}</span><input type="number" name="check_interval" min="10" max="86400" value="{{ cfg.check_interval }}"></label>
+    <label class="field"><span>{{ _("Таймаут, сек") }}</span><input type="number" name="check_timeout" min="1" max="60" value="{{ cfg.check_timeout }}"></label>
+    <label class="field"><span>{{ _("Хранить историю, дней") }}</span><input type="number" name="history_days" min="1" max="365" value="{{ cfg.history_days }}"></label>
+  </div>
+  <div class="form-actions"><button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Сохранить") }}</button></div>
+</form>
+
+<div class="cols-2">
+  <section class="card">
+    <h2>{{ icon("download") }} {{ _("Экспорт") }}</h2>
+    <p class="muted">{{ _("Все группы и сайты в одном JSON-файле — для резервной копии или переноса на другой сервер.") }}</p>
+    <a class="btn btn-ghost" href="/admin/export">{{ icon("download", 16) }} {{ _("Скачать JSON") }}</a>
+  </section>
+  <section class="card">
+    <h2>{{ icon("upload") }} {{ _("Импорт") }}</h2>
+    <form method="post" action="/admin/import" enctype="multipart/form-data" class="form">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <input type="file" name="file" accept=".json,application/json" required>
+      <label class="check"><input type="checkbox" name="replace" value="1" data-confirm-check="{{ _('Все текущие сайты и группы будут удалены. Продолжить?') }}"> {{ _("Заменить всё (иначе — добавить к существующим)") }}</label>
+      <button class="btn btn-primary" type="submit">{{ icon("upload", 16) }} {{ _("Импортировать") }}</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

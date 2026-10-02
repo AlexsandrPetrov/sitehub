@@ -1,0 +1,18 @@
+<div class="table-wrap">
+<table class="table">
+  <thead><tr><th>{{ _("Время") }}</th><th>{{ _("Событие") }}</th><th>{{ _("Пользователь") }}</th><th>IP</th><th>{{ _("Детали") }}</th></tr></thead>
+  <tbody>
+  {% for e in events %}
+  <tr>
+    <td class="nowrap muted">{{ e.ts|dt }}</td>
+    <td><span class="ev ev-{{ e.action }}">{{ _("ev:" ~ e.action) }}</span></td>
+    <td>{{ e.user or "—" }}</td>
+    <td class="mono small">{{ e.ip or "" }}</td>
+    <td class="small">{{ e.details or "" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted center">{{ _("Событий пока нет") }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>

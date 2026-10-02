@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, site_avatar with context %}
+{% block body_class %}page-dash{% endblock %}
+{% block content %}
+<section class="hero">
+  <div class="hero-text">
+    {% if cfg.show_clock == "1" %}
+    <div class="clock" data-clock data-lang="{{ lang }}"><span class="clock-time">--:--</span><span class="clock-date"></span></div>
+    <h1 class="greeting" data-greeting data-g-morning="{{ _('Доброе утро') }}" data-g-day="{{ _('Добрый день') }}"
+        data-g-evening="{{ _('Добрый вечер') }}" data-g-night="{{ _('Доброй ночи') }}"
+        data-name="{{ (user.display_name or user.username) if user else '' }}">{{ cfg.site_title }}</h1>
+    {% else %}
+    <h1 class="greeting">{{ cfg.site_title }}</h1>
+    {% endif %}
+    {% if cfg.site_subtitle %}<p class="subtitle">{{ cfg.site_subtitle }}</p>{% endif %}
+  </div>
+
+  <div class="search">
+    {{ icon("search", 20) }}
+    <input type="search" id="q" placeholder="{{ _('Поиск по сайтам…') }}" autocomplete="off" spellcheck="false" aria-label="{{ _('Поиск') }}">
+    <kbd>/</kbd>
+  </div>
+
+  <div class="hero-meta">
+    <span class="chip">{{ icon("link", 14) }} {{ total }} {{ _("сайтов") }}</span>
+    {% if cfg.show_status == "1" and (up or down) %}
+    <span class="chip ok" data-count-up><span class="dot"></span><b>{{ up }}</b> {{ _("онлайн") }}</span>
+    {% if down %}<span class="chip bad" data-count-down><span class="dot"></span><b>{{ down }}</b> {{ _("недоступно") }}</span>{% endif %}
+    {% endif %}
+    <span class="spacer"></span>
+    <div class="seg" role="group" aria-label="{{ _('Вид') }}">
+      <button type="button" data-view="grid" title="{{ _('Плитки') }}">{{ icon("grid", 16) }}</button>
+      <button type="button" data-view="list" title="{{ _('Список') }}">{{ icon("list", 16) }}</button>
+    </div>
+    {% if can_edit %}<a class="btn btn-ghost btn-sm" href="/admin/sites/edit">{{ icon("plus", 16) }}<span class="hide-sm">{{ _("Добавить") }}</span></a>{% endif %}
+  </div>
+</section>
+
+{% if sections %}
+<div id="sections" class="sections" data-status-enabled="{{ cfg.show_status }}" data-ms="{{ _('мс') }}"
+     data-t-up="{{ _('онлайн') }}" data-t-down="{{ _('недоступен') }}" data-t-uptime="{{ _('аптайм 24ч') }}">
+  {% for g, sites in sections %}
+  <section class="group" data-group>
+    <h2 class="group-title">
+      {% if g and g.icon %}<span class="g-emoji">{{ g.icon }}</span>{% endif %}
+      {{ g.name if g else _("Прочее") }}<span class="count">{{ sites|length }}</span>
+    </h2>
+    <div class="tiles">
+      {% for s in sites %}
+      <a class="tile" href="{{ s.url }}" {% if s.new_tab %}target="_blank"{% endif %} rel="noopener noreferrer"
+         data-site="{{ s.id }}" data-search="{{ (s.title ~ ' ' ~ (s.url|host) ~ ' ' ~ (s.description or '') ~ ' ' ~ (g.name if g else ''))|lower }}"
+         {% if s.color %}style="--accent: {{ s.color }}"{% endif %}>
+        {{ site_avatar(s) }}
+        <span class="tile-body">
+          <span class="tile-title">{{ s.title }}{% if s.private %}<span class="lock" title="{{ _('Только для вошедших') }}">{{ icon("lock", 12) }}</span>{% endif %}</span>
+          <span class="tile-host">{{ s.url|host }}</span>
+          {% if s.description %}<span class="tile-desc">{{ s.description }}</span>{% endif %}
+        </span>
+        {% if s.check_enabled and cfg.show_status == "1" %}
+        {% set st = "up" if s.status == 1 else ("down" if s.status == 0 else "unknown") %}
+        <span class="tile-status {{ st }}" data-status-of="{{ s.id }}"
+              title="{% if s.status == 1 %}{{ _('онлайн') }}{% elif s.status == 0 %}{{ _('недоступен') }}{% if s.status_error %}: {{ s.status_error }}{% endif %}{% endif %}{% if uptime.get(s.id) is not none %} · {{ _('аптайм 24ч') }} {{ uptime[s.id] }}%{% endif %}">
+          <span class="dot"></span><span class="lat">{% if s.status == 1 and s.latency is not none %}{{ s.latency }} {{ _("мс") }}{% endif %}</span>
+        </span>
+        {% endif %}
+        <span class="tile-go">{{ icon("external", 14) }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </section>
+  {% endfor %}
+  <div class="empty-search" hidden>{{ icon("search", 28) }}<p>{{ _("Ничего не найдено") }}</p></div>
+</div>
+{% else %}
+<div class="empty">
+  <div class="empty-art">{{ icon("layers", 40) }}</div>
+  <h2>{{ _("Здесь пока пусто") }}</h2>
+  {% if can_edit %}
+  <p>{{ _("Добавьте адреса сайтов и сервисов — они появятся здесь в виде удобных плиток со статусом доступности.") }}</p>
+  <a class="btn btn-primary" href="/admin/sites/edit">{{ icon("plus", 18) }} {{ _("Добавить первый сайт") }}</a>
+  {% elif not user %}
+  <p>{{ _("Войдите, чтобы увидеть закрытые сайты.") }}</p>
+  <a class="btn btn-primary" href="/login">{{ icon("login", 18) }} {{ _("Войти") }}</a>
+  {% else %}
+  <p>{{ _("Администратор ещё не добавил ни одного сайта.") }}</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}<script src="/static/js/dashboard.js?v={{ version }}"></script>{% endblock %}

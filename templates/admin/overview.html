@@ -1,0 +1,57 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, site_avatar, status_badge with context %}
+{% block page_title %}{{ _("Обзор") }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div><h1>{{ _("Обзор") }}</h1><p class="muted">{{ _("Состояние сервиса и последние события") }}</p></div>
+  <a class="btn btn-primary" href="/admin/sites/edit">{{ icon("plus", 16) }} {{ _("Добавить сайт") }}</a>
+</div>
+
+<div class="stats">
+  <a class="stat" href="/admin/sites"><span class="stat-ic">{{ icon("link") }}</span><b>{{ stats.sites }}</b><span>{{ _("сайтов") }} · {{ stats.groups }} {{ _("групп") }}</span></a>
+  <div class="stat ok"><span class="stat-ic">{{ icon("check") }}</span><b>{{ stats.up }}</b><span>{{ _("онлайн") }}</span></div>
+  <div class="stat {% if stats.down %}bad{% endif %}"><span class="stat-ic">{{ icon("alert") }}</span><b>{{ stats.down }}</b><span>{{ _("недоступно") }}</span></div>
+  {% if is_admin %}
+  <a class="stat" href="/admin/users"><span class="stat-ic">{{ icon("users") }}</span><b>{{ stats.users }}</b><span>{{ _("пользователей") }}</span></a>
+  <a class="stat {% if stats.bans %}warn{% endif %}" href="/admin/security"><span class="stat-ic">{{ icon("shield") }}</span><b>{{ stats.fails24 }}</b><span>{{ _("неудачных входов за 24ч") }} · {{ stats.bans }} {{ _("банов") }}</span></a>
+  <a class="stat {% if not https %}warn{% endif %}" href="/admin/server"><span class="stat-ic">{{ icon("lock") }}</span><b>{{ "HTTPS" if https else "HTTP" }}</b><span>{{ _("порт") }} {{ cfg.port }}</span></a>
+  {% endif %}
+</div>
+
+<div class="cols-2">
+  <section class="card">
+    <div class="card-head"><h2>{{ icon("alert") }} {{ _("Недоступные сайты") }}</h2>
+      <form method="post" action="/admin/check-now"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button class="btn btn-ghost btn-sm" type="submit">{{ icon("refresh", 14) }} {{ _("Проверить сейчас") }}</button></form></div>
+    {% if down_sites %}
+    <ul class="rows">
+      {% for s in down_sites %}
+      <li><a href="/admin/sites/edit?id={{ s.id }}">{{ site_avatar(s, "sm") }}<span class="grow">{{ s.title }}<small>{{ s.url|host }} · {{ s.status_error or "" }}</small></span>
+        <small class="muted">{{ _("с") }} {{ s.status_since|dt }}</small></a></li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty-mini">{{ icon("check", 22) }} {{ _("Все сайты доступны") }}</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>{{ icon("zap") }} {{ _("Популярные") }}</h2>
+    {% if top %}
+    <ul class="rows">
+      {% for s in top %}
+      <li><a href="/admin/sites/edit?id={{ s.id }}">{{ site_avatar(s, "sm") }}<span class="grow">{{ s.title }}<small>{{ s.url|host }}</small></span>
+        <span class="badge muted">{{ s.clicks }} {{ _("переходов") }}</span></a></li>
+      {% endfor %}
+    </ul>
+    {% else %}<p class="empty-mini muted">{{ _("Статистика переходов появится, когда пользователи начнут открывать сайты") }}</p>{% endif %}
+  </section>
+</div>
+
+{% if is_admin %}
+<section class="card">
+  <div class="card-head"><h2>{{ icon("clock") }} {{ _("Последние события") }}</h2><a class="btn-link" href="/admin/security#audit">{{ _("Весь журнал") }} →</a></div>
+  {% include "admin/_audit_table.html" %}
+</section>
+{% endif %}
+{% endblock %}

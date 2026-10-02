@@ -1,0 +1,72 @@
+{% from "_macros.html" import icon, logo with context %}<!doctype html>
+<html lang="{{ lang }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}{{ cfg.site_title }}{% endblock %}</title>
+  <link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <meta name="theme-color" content="#0f1117">
+  <script src="/static/js/theme.js?v={{ version }}"></script>
+  <link rel="stylesheet" href="/static/css/app.css?v={{ version }}">
+</head>
+<body class="{% block body_class %}{% endblock %}">
+<div class="backdrop" aria-hidden="true"><span></span><span></span><span></span></div>
+
+<header class="topbar">
+  <a class="brand" href="/">{{ logo(30) }}<span>{{ cfg.site_title }}</span></a>
+  <div class="top-actions">
+    {% block topnav %}{% endblock %}
+    <details class="menu">
+      <summary class="icon-btn" title="{{ _('Язык') }}">{{ icon("globe") }}<span class="hide-sm">{{ lang|upper }}</span></summary>
+      <div class="menu-pop">
+        {% for code, name in langs.items() %}
+        <a href="/lang/{{ code }}" class="{% if code == lang %}active{% endif %}">{{ name }}</a>
+        {% endfor %}
+      </div>
+    </details>
+    <button class="icon-btn" type="button" data-theme-toggle title="{{ _('Тема оформления') }}">
+      <span class="t-auto">{{ icon("monitor") }}</span><span class="t-light">{{ icon("sun") }}</span><span class="t-dark">{{ icon("moon") }}</span>
+    </button>
+    {% if user %}
+    <details class="menu">
+      <summary class="user-chip">
+        <span class="user-ava">{{ (user.display_name or user.username)[:1]|upper }}</span>
+        <span class="hide-sm">{{ user.display_name or user.username }}</span>{{ icon("chevron", 14) }}
+      </summary>
+      <div class="menu-pop right">
+        <div class="menu-head">{{ user.username }}<small>{{ _(user.role) }}</small></div>
+        {% if can_edit %}<a href="/admin">{{ icon("sliders", 16) }} {{ _("Админ-панель") }}</a>{% endif %}
+        <a href="/account">{{ icon("user", 16) }} {{ _("Мой профиль") }}</a>
+        <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{ csrf }}">
+          <button type="submit">{{ icon("logout", 16) }} {{ _("Выйти") }}</button></form>
+      </div>
+    </details>
+    {% elif not path.startswith("/login") %}
+    <a class="btn btn-primary btn-sm" href="/login">{{ icon("login", 16) }}<span>{{ _("Войти") }}</span></a>
+    {% endif %}
+  </div>
+</header>
+
+{% if flashes %}
+<div class="toasts" role="status">
+  {% for kind, text in flashes %}
+  <div class="toast {{ kind }}">{{ icon("check" if kind == "ok" else "alert", 18) }}<span>{{ text }}</span>
+    <button type="button" class="toast-x" aria-label="close">{{ icon("x", 14) }}</button></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% block body %}
+<main class="container">{% block content %}{% endblock %}</main>
+{% endblock %}
+
+<footer class="footer">
+  <span>SiteHub v{{ version }}</span>
+  <a href="https://github.com/AlexsandrPetrov/sitehub" target="_blank" rel="noopener">GitHub</a>
+</footer>
+<script src="/static/js/app.js?v={{ version }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

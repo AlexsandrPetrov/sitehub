@@ -1,0 +1,101 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon, site_avatar, status_badge, switch with context %}
+{% block page_title %}{{ site.title if site else _("Новый сайт") }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div>
+    <a class="btn-link" href="/admin/sites">{{ icon("arrow-left", 14) }} {{ _("Сайты и группы") }}</a>
+    <h1>{{ site.title if site else _("Новый сайт") }}</h1>
+  </div>
+  {% if site %}<div class="actions">{{ status_badge(site, _) }}</div>{% endif %}
+</div>
+
+<div class="cols-main">
+<form method="post" action="/admin/sites/save" enctype="multipart/form-data" class="card form" id="site-form">
+  <input type="hidden" name="csrf" value="{{ csrf }}">
+  {% if site %}<input type="hidden" name="id" value="{{ site.id }}">{% endif %}
+
+  <div class="grid-2">
+    <label class="field"><span>{{ _("Название") }} *</span>
+      <input name="title" value="{{ site.title if site else '' }}" required maxlength="120" autofocus placeholder="{{ _('Например, Grafana') }}"></label>
+    <label class="field"><span>{{ _("Группа") }}</span>
+      <select name="group_id">
+        <option value="">— {{ _("Без группы") }} —</option>
+        {% for g in groups %}<option value="{{ g.id }}" {% if (site and site.group_id == g.id) or (not site and preset_group == g.id) %}selected{% endif %}>{{ g.icon or "" }} {{ g.name }}</option>{% endfor %}
+      </select></label>
+  </div>
+
+  <label class="field"><span>{{ _("Адрес (URL)") }} *</span>
+    <input name="url" value="{{ site.url if site else '' }}" required maxlength="2000" placeholder="https://example.ru" inputmode="url" spellcheck="false"></label>
+
+  <label class="field"><span>{{ _("Описание") }}</span>
+    <input name="description" value="{{ site.description or '' if site else '' }}" maxlength="300" placeholder="{{ _('Коротко, для чего этот сайт') }}"></label>
+
+  <fieldset class="fieldset">
+    <legend>{{ _("Внешний вид") }}</legend>
+    <div class="icon-picker">
+      <div class="preview-tile">{% if site %}{{ site_avatar(site) }}{% else %}<span class="avatar"><span class="letter">?</span></span>{% endif %}</div>
+      <div class="grow">
+        <div class="grid-2">
+          <label class="field"><span>{{ _("Эмодзи вместо иконки") }}</span>
+            <input name="icon" class="emoji-input wide" value="{{ site.icon or '' if site else '' }}" maxlength="16" placeholder="🌐"></label>
+          <label class="field"><span>{{ _("Цвет акцента") }}</span>
+            <span class="color-row"><input type="color" name="color" value="{{ site.color if site and site.color else '#7c5cff' }}" {% if not (site and site.color) %}data-unset{% endif %}>
+            <button type="button" class="btn-link" data-color-reset>{{ _("без цвета") }}</button></span></label>
+        </div>
+        <label class="field"><span>{{ _("Своя иконка (PNG, SVG, ICO, JPG, WEBP до 1 МБ)") }}</span>
+          <input type="file" name="icon_upload" accept="image/*,.ico"></label>
+        <p class="hint">{{ _("Если ничего не указано, иконка сайта (favicon) будет загружена автоматически.") }}</p>
+        {% if site and site.icon_file %}
+        <label class="check"><input type="checkbox" name="icon_remove" value="1"> {{ _("Удалить загруженную иконку") }}</label>
+        {% endif %}
+      </div>
+    </div>
+  </fieldset>
+
+  <fieldset class="fieldset">
+    <legend>{{ _("Поведение") }}</legend>
+    {{ switch("new_tab", site.new_tab if site else true, _("Открывать в новой вкладке")) }}
+    {{ switch("private", site.private if site else false, _("Только для вошедших пользователей"), _("Гости не увидят этот сайт на главной")) }}
+    {{ switch("check_enabled", site.check_enabled if site else true, _("Проверять доступность"), _("Периодический HTTP-запрос; ответ с кодом ниже 500 считается «онлайн»")) }}
+    <label class="field"><span>{{ _("Адрес для проверки (необязательно)") }}</span>
+      <input name="check_url" value="{{ site.check_url or '' if site else '' }}" maxlength="2000" placeholder="{{ _('по умолчанию — основной адрес') }}" spellcheck="false"></label>
+  </fieldset>
+
+  <div class="form-actions">
+    <button class="btn btn-primary" type="submit">{{ icon("check", 16) }} {{ _("Сохранить") }}</button>
+    <a class="btn btn-ghost" href="/admin/sites">{{ _("Отмена") }}</a>
+  </div>
+</form>
+
+{% if site %}
+<aside class="side-stack">
+  <section class="card">
+    <h2>{{ icon("activity") }} {{ _("Доступность") }}</h2>
+    <div class="kv">
+      <span>{{ _("Аптайм 24ч") }}</span><b>{{ uptime24 ~ "%" if uptime24 is not none else "—" }}</b>
+      <span>{{ _("Аптайм 7 дней") }}</span><b>{{ uptime7 ~ "%" if uptime7 is not none else "—" }}</b>
+      <span>{{ _("Отклик") }}</span><b>{{ site.latency ~ " " ~ _("мс") if site.latency is not none else "—" }}</b>
+      <span>{{ _("HTTP-код") }}</span><b>{{ site.status_code or "—" }}</b>
+      <span>{{ _("Проверено") }}</span><b>{{ ago(site.checked_at) }}</b>
+      <span>{{ _("Переходов") }}</span><b>{{ site.clicks }}</b>
+    </div>
+    {% if history %}
+    <div class="history" title="{{ _('Последние проверки') }}">
+      {% for h in history %}<span class="{{ 'ok' if h.ok else 'bad' }}" title="{{ h.ts|dt }}{% if h.latency is not none %} · {{ h.latency }} {{ _('мс') }}{% endif %}"></span>{% endfor %}
+    </div>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>{{ icon("sliders") }} {{ _("Действия") }}</h2>
+    <form method="post" action="/admin/sites/{{ site.id }}/favicon"><input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn btn-ghost btn-block" type="submit">{{ icon("refresh", 16) }} {{ _("Загрузить favicon заново") }}</button></form>
+    <form method="post" action="/admin/sites/{{ site.id }}/delete" data-confirm="{{ _('Удалить сайт «{n}»?', n=site.title) }}">
+      <input type="hidden" name="csrf" value="{{ csrf }}">
+      <button class="btn btn-danger btn-block" type="submit">{{ icon("trash", 16) }} {{ _("Удалить сайт") }}</button></form>
+  </section>
+</aside>
+{% endif %}
+</div>
+{% endblock %}
+{% block scripts %}<script src="/static/js/admin.js?v={{ version }}"></script>{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon with context %}
+{% block title %}{% block page_title %}{% endblock %} — {{ _("Админ-панель") }}{% endblock %}
+{% block body_class %}page-admin{% endblock %}
+{% block body %}
+<div class="admin">
+  <aside class="sidebar">
+    <nav>
+      {% set items = [
+        ("/admin", "activity", "Обзор", false),
+        ("/admin/sites", "layers", "Сайты и группы", false),
+        ("/admin/users", "users", "Пользователи", true),
+        ("/admin/security", "shield", "Безопасность", true),
+        ("/admin/server", "server", "Сервер и SSL", true),
+        ("/admin/settings", "sliders", "Настройки", true),
+      ] %}
+      {% for href, ic, label, admin_only in items %}
+      {% if not admin_only or is_admin %}
+      <a href="{{ href }}" class="{% if path == href or (href != '/admin' and path.startswith(href)) %}active{% endif %}">{{ icon(ic) }}<span>{{ _(label) }}</span></a>
+      {% endif %}
+      {% endfor %}
+      <hr>
+      <a href="/">{{ icon("home") }}<span>{{ _("На главную") }}</span></a>
+      <a href="/account">{{ icon("user") }}<span>{{ _("Мой профиль") }}</span></a>
+    </nav>
+  </aside>
+  <main class="admin-main">{% block admin %}{% endblock %}</main>
+</div>
+{% endblock %}

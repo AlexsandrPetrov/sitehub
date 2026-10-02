@@ -1,0 +1,56 @@
+{% extends "admin/layout.html" %}
+{% from "_macros.html" import icon with context %}
+{% block page_title %}{{ _("Пользователи") }}{% endblock %}
+{% block admin %}
+<div class="page-head">
+  <div><h1>{{ _("Пользователи") }}</h1><p class="muted">{{ _("Учётные записи и права доступа") }}</p></div>
+</div>
+
+{% if new_password %}
+<div class="alert warn block">
+  <div>{{ _("Пароль для") }} <b>{{ new_password[0] }}</b> — {{ _("сохраните его, он больше не будет показан:") }}</div>
+  <div class="secret"><code id="newpw">{{ new_password[1] }}</code>
+    <button type="button" class="icon-btn" data-copy="#newpw">{{ icon("copy", 16) }}</button></div>
+</div>
+{% endif %}
+
+<section class="card">
+  <h2>{{ icon("plus") }} {{ _("Новый пользователь") }}</h2>
+  <form method="post" action="/admin/users/create" class="form grid-user" autocomplete="off">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <label class="field"><span>{{ _("Логин") }} *</span><input name="username" required pattern="[A-Za-z0-9_.@\-]{3,64}" autocomplete="off" spellcheck="false"></label>
+    <label class="field"><span>{{ _("Имя") }}</span><input name="display_name" maxlength="64"></label>
+    <label class="field"><span>{{ _("Роль") }}</span>
+      <select name="role">{% for r in roles %}<option value="{{ r }}" {% if r == 'viewer' %}selected{% endif %}>{{ _(r) }}</option>{% endfor %}</select></label>
+    <label class="field"><span>{{ _("Пароль") }}</span><input type="password" name="password" minlength="8" autocomplete="new-password" placeholder="{{ _('пусто — сгенерировать') }}"></label>
+    <button class="btn btn-primary" type="submit">{{ icon("plus", 16) }} {{ _("Создать") }}</button>
+  </form>
+  <div class="roles-help">
+    <span><b>{{ _("admin") }}</b> — {{ _("полный доступ: пользователи, безопасность, сервер") }}</span>
+    <span><b>{{ _("editor") }}</b> — {{ _("управляет сайтами и группами") }}</span>
+    <span><b>{{ _("viewer") }}</b> — {{ _("видит все сайты, включая закрытые") }}</span>
+  </div>
+</section>
+
+<section class="card">
+  <div class="table-wrap">
+  <table class="table">
+    <thead><tr><th>{{ _("Пользователь") }}</th><th>{{ _("Роль") }}</th><th>2FA</th><th>{{ _("Последний вход") }}</th><th></th></tr></thead>
+    <tbody>
+    {% for u in users %}
+    <tr class="{% if not u.active %}dim{% endif %}">
+      <td><a href="/admin/users/{{ u.id }}" class="user-cell"><span class="user-ava">{{ (u.display_name or u.username)[:1]|upper }}</span>
+        <span>{{ u.username }}{% if u.display_name %}<small>{{ u.display_name }}</small>{% endif %}</span></a>
+        {% if not u.active %}<span class="badge bad">{{ _("заблокирован") }}</span>{% endif %}
+        {% if u.id == user.id %}<span class="badge muted">{{ _("это вы") }}</span>{% endif %}</td>
+      <td><span class="role role-{{ u.role }}">{{ _(u.role) }}</span></td>
+      <td>{% if u.totp_enabled %}<span class="badge ok">{{ icon("shield", 12) }} {{ _("вкл") }}</span>{% else %}<span class="badge muted">{{ _("выкл") }}</span>{% endif %}</td>
+      <td class="nowrap muted">{{ u.last_login|dt }}{% if u.last_ip %}<small class="mono">{{ u.last_ip }}</small>{% endif %}</td>
+      <td class="right"><a class="icon-btn" href="/admin/users/{{ u.id }}" title="{{ _('Редактировать') }}">{{ icon("edit", 16) }}</a></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import icon, logo with context %}
+{% block title %}{{ _("Вход") }} — {{ cfg.site_title }}{% endblock %}
+{% block body_class %}page-auth{% endblock %}
+{% block content %}
+<div class="auth-card card">
+  <div class="auth-logo">{{ logo(52) }}</div>
+  <h1>{{ _("Вход") }}</h1>
+  <p class="muted">{{ cfg.site_title }}</p>
+  {% if error %}<div class="alert error">{{ icon("alert", 18) }}<span>{{ error }}</span></div>{% endif %}
+  <form method="post" action="/login" class="form" autocomplete="on">
+    <input type="hidden" name="csrf" value="{{ csrf }}">
+    <input type="hidden" name="next" value="{{ next or '/' }}">
+    <label class="field">
+      <span>{{ _("Логин") }}</span>
+      <span class="input-icon">{{ icon("user", 18) }}<input name="username" value="{{ username or '' }}" required autofocus autocomplete="username" autocapitalize="none" spellcheck="false"></span>
+    </label>
+    <label class="field">
+      <span>{{ _("Пароль") }}</span>
+      <span class="input-icon">{{ icon("key", 18) }}<input type="password" name="password" required autocomplete="current-password">
+        <button type="button" class="reveal" data-reveal tabindex="-1" aria-label="show">{{ icon("eye", 16) }}</button></span>
+    </label>
+    <button class="btn btn-primary btn-block" type="submit">{{ icon("login", 18) }} {{ _("Войти") }}</button>
+  </form>
+  <p class="auth-foot muted">{{ icon("shield", 14) }} {{ _("Защищено от подбора паролей") }}</p>
+</div>
+{% endblock %}

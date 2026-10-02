@@ -1,0 +1,8 @@
+#!/bin/sh
+# SiteHub maintenance CLI (runs as the service user so file ownership stays correct)
+export SITEHUB_DATA=/var/lib/sitehub
+cd /opt/sitehub || exit 1
+if [ "$(id -u)" = "0" ]; then
+  exec runuser -u sitehub -- /opt/sitehub/venv/bin/python -m sitehub.cli "$@"
+fi
+exec /opt/sitehub/venv/bin/python -m sitehub.cli "$@"
