@@ -9,6 +9,7 @@ DEFAULTS: dict[str, str] = {
     "default_lang": "ru",
     "show_clock": "1",
     "show_status": "1",
+    "background": "neutral",      # neutral | gradient | ocean | warm | aurora
     # monitoring
     "check_interval": "60",
     "check_timeout": "8",

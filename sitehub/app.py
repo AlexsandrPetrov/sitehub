@@ -1051,7 +1051,7 @@ async def admin_server_le(request: Request):
 @app.get("/admin/settings")
 async def admin_settings(request: Request):
     require(request, "admin")
-    return render(request, "admin/settings.html")
+    return render(request, "admin/settings.html", {"backgrounds": BACKGROUNDS})
 
 
 @app.post("/admin/settings/save")
@@ -1069,6 +1069,7 @@ async def admin_settings_save(request: Request):
         "public_dashboard": "1" if form.get("public_dashboard") else "0",
         "show_clock": "1" if form.get("show_clock") else "0",
         "show_status": "1" if form.get("show_status") else "0",
+        "background": form.get("background") if form.get("background") in BACKGROUNDS else "neutral",
         "default_lang": form.get("default_lang") if form.get("default_lang") in i18n.LANGS else "ru",
         "check_interval": num("check_interval", 10, 86400),
         "check_timeout": num("check_timeout", 1, 60),
@@ -1080,6 +1081,7 @@ async def admin_settings_save(request: Request):
     return RedirectResponse("/admin/settings", 303)
 
 
+BACKGROUNDS = ("neutral", "gradient", "ocean", "warm", "aurora")
 SITE_FIELDS = ("title", "url", "description", "icon", "color", "private", "new_tab", "check_enabled", "check_url")
 
 

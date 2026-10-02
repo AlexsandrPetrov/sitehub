@@ -15,6 +15,17 @@
       <select name="default_lang">{% for code, name in langs.items() %}<option value="{{ code }}" {% if code == cfg.default_lang %}selected{% endif %}>{{ name }}</option>{% endfor %}</select></label>
   </div>
   <label class="field"><span>{{ _("Подзаголовок") }}</span><input name="site_subtitle" value="{{ cfg.site_subtitle }}" maxlength="160" placeholder="{{ _('Например: Сервисы нашей компании') }}"></label>
+  <div class="field"><span>{{ _("Фон") }}</span>
+    <div class="bg-cards">
+      {% set bg_names = {"neutral": "Нейтральный", "gradient": "Мягкий градиент", "ocean": "Океан", "warm": "Тёплый", "aurora": "Северное сияние"} %}
+      {% for b in backgrounds %}
+      <label class="bg-card">
+        <input type="radio" name="background" value="{{ b }}" {% if (cfg.background or "neutral") == b %}checked{% endif %}>
+        <span class="bg-box"><span class="bg-prev bg-{{ b }}"><i class="l"></i><i class="d"></i></span><b>{{ _(bg_names[b]) }}</b></span>
+      </label>
+      {% endfor %}
+    </div>
+  </div>
   {{ switch("public_dashboard", cfg.public_dashboard == "1", _("Публичная главная"), _("Гости видят открытые сайты без входа. Если выключено — главная доступна только после входа")) }}
   {{ switch("show_clock", cfg.show_clock == "1", _("Часы и приветствие")) }}
   {{ switch("show_status", cfg.show_status == "1", _("Показывать статус доступности на плитках")) }}
