@@ -49,7 +49,7 @@ install -m 0755 "$APP/deploy/sitehub-cli" /usr/local/bin/sitehub
 FIRST=0
 if [ ! -f "$DATA/sitehub.db" ]; then
   FIRST=1
-  runuser -u sitehub -- env SITEHUB_DATA="$DATA" "$APP/venv/bin/python" -c \
+  runuser -u sitehub -- env SITEHUB_DATA="$DATA" PYTHONPATH="$APP" "$APP/venv/bin/python" -c \
     "from sitehub import config, db; db.init(); config.set_many({'port': '$PORT'})"
 fi
 ADMIN_LINE=""
